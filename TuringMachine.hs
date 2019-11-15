@@ -2,7 +2,7 @@
     DeriveGeneric
 #-}
 
-module Turing
+module TuringMachine
 (
   Machine,
   encode,

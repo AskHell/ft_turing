@@ -1,4 +1,4 @@
-import Turing
+import TuringMachine
 
 import qualified Data.ByteString.Lazy as B
 
