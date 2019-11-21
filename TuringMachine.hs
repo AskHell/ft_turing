@@ -45,6 +45,15 @@ data Machine =
     transitions :: Map String [Transition]
   } deriving (Generic)
 
+type Tape = String
+
+data MachineState =
+  MachineState {
+    bandeau :: Tape,
+    cursor :: Int,
+    state :: State
+  }
+
 instance FromJSON Machine
 instance ToJSON Machine
 
@@ -67,3 +76,11 @@ encode = Aeson.encode
 
 eitherDecode :: ByteString -> Either String Machine
 eitherDecode bs = Aeson.eitherDecode bs >>= valid
+
+-- step :: Machine -> MachineState -> MachineState
+-- process :: Machine -> Tape -> Tape
+-- processVerbose :: Machine -> Tape -> (Tape, [MachineState])
+
+-- TODO Choose prototype
+-- checkTape :: [Letter] -> Tape -> Either String Tape
+-- checkTape :: [Letter] -> Tape -> Boolean
