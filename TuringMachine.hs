@@ -6,13 +6,16 @@ module TuringMachine
 (
   Machine,
   encode,
-  eitherDecode
+  eitherDecode,
+  eitherFromBool,
+  checkTape
 ) where
 
 import GHC.Generics (Generic)
 import Data.ByteString.Lazy (ByteString)
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Aeson as Aeson (encode, eitherDecode)
+import qualified Data.ByteString.Lazy as B (ByteString)
 
 import Data.Map.Strict (Map)
 
@@ -81,6 +84,15 @@ eitherDecode bs = Aeson.eitherDecode bs >>= valid
 -- process :: Machine -> Tape -> Tape
 -- processVerbose :: Machine -> Tape -> (Tape, [MachineState])
 
--- TODO Choose prototype
--- checkTape :: [Letter] -> Tape -> Either String Tape
--- checkTape :: [Letter] -> Tape -> Boolean
+eitherFromBool :: String -> Bool-> a -> Either String a
+eitherFromBool errorMessage assertion value =
+  if assertion then Right value else Left errorMessage
+
+checkTape :: [Letter] -> Tape -> Bool
+checkTape alphabet tape = True
+
+ft_turing :: B.ByteString -> String -> Either String String
+ft_turing description tape = do
+  machine <- eitherDecode description
+  tape <- eitherFromBool "Invalid tape" (checkTape (alphabet machine) tape) tape
+  return "Hooray"
