@@ -21,9 +21,5 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 
-
-# IDE
-.vscode
-
 # Binaries
 Main
