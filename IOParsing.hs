@@ -4,8 +4,6 @@ module IOParsing
     usage
 ) where
 
-import qualified Data.ByteString.Lazy as B (readFile, ByteString)
-
 data IOResult a = Usage | Help | IOError a
 
 usageBase :: IO()
@@ -30,15 +28,13 @@ usage Usage = usageBase
 usage Help = usageVerbose
 usage (IOError error) = usageError error
 
-parseFlag :: String -> Either (IOResult String) (B.ByteString, String)
+parseFlag :: String -> Either (IOResult String) (String, String)
 parseFlag "-h" = Left Help
 parseFlag "--help" = Left Help
 parseFlag flag = Left $ IOError $ "Unkown flag " ++ flag
 
-parseArgs :: [String] -> IO (Either (IOResult String) (B.ByteString, String))
-parseArgs [] = return $ Left $ IOError "Missing arguments"
-parseArgs (fst:_) | head fst == '-' = return $ parseFlag fst
-parseArgs (filename:input:[]) = do
-    description <- B.readFile filename
-    return $ Right (description, input)
-parseArgs _ = return $ Left $ IOError "Wrong number of arguments"
+parseArgs :: [String] -> Either (IOResult String) (String, String)
+parseArgs [] = Left $ IOError "Missing arguments"
+parseArgs (fst:_) | head fst == '-' = parseFlag fst
+parseArgs (filename:input:[]) = Right (filename, input)
+parseArgs _ = Left $ IOError "Wrong number of arguments"
