@@ -1,10 +1,10 @@
-module IOParsing
+module ArgsParsing
 (
     parseArgs,
     usage
 ) where
 
-data IOResult a = Usage | Help | IOError a
+data ParseResult a = Usage | Help | ParseError a
 
 usageBase :: IO()
 usageBase = putStrLn $ "usage: ft_turing [-h] jsonfile input"
@@ -23,18 +23,18 @@ usageError error = do
     putStrLn error
     usageBase
 
-usage :: IOResult String -> IO()
+usage :: ParseResult String -> IO()
 usage Usage = usageBase
 usage Help = usageVerbose
-usage (IOError error) = usageError error
+usage (ParseError error) = usageError error
 
-parseFlag :: String -> Either (IOResult String) (String, String)
+parseFlag :: String -> Either (ParseResult String) (String, String)
 parseFlag "-h" = Left Help
 parseFlag "--help" = Left Help
-parseFlag flag = Left $ IOError $ "Unkown flag " ++ flag
+parseFlag flag = Left $ ParseError $ "Unkown flag " ++ flag
 
-parseArgs :: [String] -> Either (IOResult String) (String, String)
-parseArgs [] = Left $ IOError "Missing arguments"
+parseArgs :: [String] -> Either (ParseResult String) (String, String)
+parseArgs [] = Left $ ParseError "Missing arguments"
 parseArgs (fst:_) | head fst == '-' = parseFlag fst
 parseArgs (filename:input:[]) = Right (filename, input)
-parseArgs _ = Left $ IOError "Wrong number of arguments"
+parseArgs _ = Left $ ParseError "Wrong number of arguments"

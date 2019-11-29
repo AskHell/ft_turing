@@ -2,7 +2,7 @@ import Control.Exception (catch, displayException)
 import System.Environment (getArgs)
 
 import TuringMachine (eitherDecode)
-import IOParsing (parseArgs, usage)
+import ArgsParsing (parseArgs, usage)
 
 import qualified Data.ByteString.Lazy as B (readFile, ByteString)
 
