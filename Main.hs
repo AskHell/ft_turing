@@ -2,7 +2,9 @@ import Control.Exception (catch, displayException)
 import System.Environment (getArgs)
 
 import TuringMachine (eitherDecode)
-import IOParsing (parseArgs, usage)
+import ArgsParsing (parseArgs, usage)
+
+import qualified Data.ByteString.Lazy as B (readFile, ByteString)
 
 main :: IO ()
 main = toTry `catch` handler
@@ -10,10 +12,13 @@ main = toTry `catch` handler
 toTry :: IO ()
 toTry = do
   args <- getArgs
-  action <- parseArgs args
-  case action of
-    Left invalid -> usage invalid
-    Right (description, input) -> putStrLn "Hooray"
+  let result = parseArgs args in
+    case result of
+      Left invalid -> usage invalid
+      Right (description, input) ->
+        do
+          description_file <- B.readFile description
+          putStrLn "Hooray"
 
 handler :: IOError -> IO ()
 handler e = putStrLn $ displayException e
