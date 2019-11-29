@@ -1,9 +1,5 @@
 import Control.Exception (catch, displayException)
-import System.IO
-import System.IO.Error
-import System.Environment
-import qualified Data.ByteString.Lazy as B (readFile, ByteString)
-import Debug.Trace (trace)
+import System.Environment (getArgs)
 
 import TuringMachine (eitherDecode)
 import IOParsing (parseArgs, usage)
