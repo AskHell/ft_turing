@@ -3,7 +3,7 @@ import System.Environment (getArgs)
 import qualified Data.ByteString.Lazy as B (readFile, ByteString)
 
 import ArgsParsing (parseArgs, usage)
-import TuringMachine (eitherDecode, ft_turing)
+import TuringMachine (eitherDecode, run)
 
 main :: IO ()
 main = toTry `catch` handler
@@ -16,7 +16,7 @@ toTry = do
       Left invalid -> usage invalid
       Right (description, input) -> do
           description_file <- B.readFile description
-          case ft_turing description_file input of
+          case run description_file input of
             Right s -> putStrLn s
             Left err -> putStrLn err
 

@@ -7,7 +7,7 @@ module TuringMachine
   Machine,
   encode,
   eitherDecode,
-  ft_turing
+  run
 ) where
 
 import GHC.Generics (Generic)
@@ -96,8 +96,8 @@ parseTape alphabet blank tapeInput =
   Right tapeInput else
   Left "Invalid input"
 
-ft_turing :: B.ByteString -> String -> Either String String
-ft_turing description_file input = do
+run :: B.ByteString -> String -> Either String String
+run description_file input = do
   machine <- eitherDecode description_file
   tape <- parseTape (alphabet machine) (blank machine) input
-  Right "Hooray"
+  Right "All good, time to process now..."
