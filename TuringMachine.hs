@@ -83,21 +83,20 @@ eitherDecode bs = Aeson.eitherDecode bs >>= valid
 -- process :: Machine -> Tape -> Tape
 -- processVerbose :: Machine -> Tape -> (Tape, [MachineState])
 
-checkChar :: [Letter] -> Letter -> Char -> Bool
-checkChar _ blank c | head blank == c = False 
-checkChar alphabet _ c = or $ map (\letter -> head letter == c) alphabet 
+checkChar :: [Letter] -> Char -> Bool
+checkChar alphabet c = or $ map (\letter -> head letter == c) alphabet 
 
-checkTape :: [Letter] -> Letter -> String -> Bool
-checkTape alphabet blank tapeInput = and $ map (checkChar alphabet blank) tapeInput
+checkTape :: [Letter] -> String -> Bool
+checkTape alphabet tapeInput = and $ map (checkChar alphabet) tapeInput
 
-parseTape :: [Letter] -> Letter -> String -> Either String Tape
-parseTape alphabet blank tapeInput =
-  if checkTape alphabet blank tapeInput then
+parseTape :: [Letter] -> String -> Either String Tape
+parseTape alphabet tapeInput =
+  if checkTape alphabet tapeInput then
   Right tapeInput else
   Left "Invalid input"
 
 run :: B.ByteString -> String -> Either String String
 run description_file input = do
   machine <- eitherDecode description_file
-  tape <- parseTape (alphabet machine) (blank machine) input
+  tape <- parseTape (alphabet machine) input
   Right "All good, time to process now..."
