@@ -6,13 +6,15 @@ module TuringMachine
 (
   Machine,
   encode,
-  eitherDecode
+  eitherDecode,
+  run
 ) where
 
 import GHC.Generics (Generic)
 import Data.ByteString.Lazy (ByteString)
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Aeson as Aeson (encode, eitherDecode)
+import qualified Data.ByteString.Lazy as B (ByteString)
 
 import Data.Map.Strict (Map)
 
@@ -81,6 +83,21 @@ eitherDecode bs = Aeson.eitherDecode bs >>= valid
 -- process :: Machine -> Tape -> Tape
 -- processVerbose :: Machine -> Tape -> (Tape, [MachineState])
 
--- TODO Choose prototype
--- checkTape :: [Letter] -> Tape -> Either String Tape
--- checkTape :: [Letter] -> Tape -> Boolean
+checkChar :: [Letter] -> Letter -> Char -> Bool
+checkChar _ blank c | head blank == c = False 
+checkChar alphabet _ c = or $ map (\letter -> head letter == c) alphabet 
+
+checkTape :: [Letter] -> Letter -> String -> Bool
+checkTape alphabet blank tapeInput = and $ map (checkChar alphabet blank) tapeInput
+
+parseTape :: [Letter] -> Letter -> String -> Either String Tape
+parseTape alphabet blank tapeInput =
+  if checkTape alphabet blank tapeInput then
+  Right tapeInput else
+  Left "Invalid input"
+
+run :: B.ByteString -> String -> Either String String
+run description_file input = do
+  machine <- eitherDecode description_file
+  tape <- parseTape (alphabet machine) (blank machine) input
+  Right "All good, time to process now..."
