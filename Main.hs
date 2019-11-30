@@ -3,7 +3,7 @@ import System.Environment (getArgs)
 import qualified Data.ByteString.Lazy as B (readFile, ByteString)
 
 import ArgsParsing (parseArgs, usage)
-import TuringMachine (eitherDecode, parseTape, ft_turing)
+import TuringMachine (eitherDecode, ft_turing)
 
 main :: IO ()
 main = toTry `catch` handler

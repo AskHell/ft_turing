@@ -7,7 +7,6 @@ module TuringMachine
   Machine,
   encode,
   eitherDecode,
-  parseTape,
   ft_turing
 ) where
 
