@@ -39,7 +39,6 @@
             { "read" : "0", "to_state": "invalidate_phase_1", "write": "0", "action": "LEFT" },
             { "read" : "-", "to_state": "validate_phase_1", "write": "-", "action": "LEFT" },
             { "read" : "+", "to_state": "validate_phase_1", "write": "+", "action": "LEFT" }
-
         ],
         "check_0": [
             { "read" : "0", "to_state": "goto_start", "write": "-", "action": "LEFT" },
