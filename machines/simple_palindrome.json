@@ -1,0 +1,79 @@
+{
+    "name" : "simple_palindrome",
+    "alphabet": [ "1", "0", ".", "-", "+", "n", "y" ],
+    "blank" : ".",
+    "states" : [ "true", "false", "init", "goto_start", "goto_end_1", "goto_end_0", "check_1", "check_0", "invalidate_phase_1", "invalidate_phase_2", "validate_phase_1", "validate_phase_2"],
+    "initial" : "init",
+    "finals" : [ "true", "false" ],
+    "transitions" : {
+        "init": [
+            { "read" : "1", "to_state": "goto_end_1", "write": "+", "action": "RIGHT" },
+            { "read" : "0", "to_state": "goto_end_0", "write": "-", "action": "RIGHT" },
+            { "read" : "-", "to_state": "init", "write": "-", "action": "RIGHT" },
+            { "read" : "+", "to_state": "init", "write": "+", "action": "RIGHT" },
+            { "read" : ".", "to_state": "validate_phase_1", "write": ".", "action": "LEFT" }
+        ],
+        "goto_start": [
+            { "read" : ".", "to_state": "init", "write": ".", "action": "RIGHT" },
+            { "read" : "-", "to_state": "init", "write": "-", "action": "RIGHT" },
+            { "read" : "+", "to_state": "init", "write": "+", "action": "RIGHT" },
+            { "read" : "1", "to_state": "goto_start", "write": "1", "action": "LEFT" },
+            { "read" : "0", "to_state": "goto_start", "write": "0", "action": "LEFT" }
+        ],
+        "goto_end_1": [
+            { "read" : ".", "to_state": "check_1", "write": ".", "action": "LEFT" },
+            { "read" : "-", "to_state": "check_1", "write": "-", "action": "LEFT" },
+            { "read" : "+", "to_state": "check_1", "write": "+", "action": "LEFT" },
+            { "read" : "1", "to_state": "goto_end_1", "write": "1", "action": "RIGHT" },
+            { "read" : "0", "to_state": "goto_end_1", "write": "0", "action": "RIGHT" }
+        ],
+        "goto_end_0": [
+            { "read" : ".", "to_state": "check_0", "write": ".", "action": "LEFT" },
+            { "read" : "-", "to_state": "check_0", "write": "-", "action": "LEFT" },
+            { "read" : "+", "to_state": "check_0", "write": "+", "action": "LEFT" },
+            { "read" : "1", "to_state": "goto_end_0", "write": "1", "action": "RIGHT" },
+            { "read" : "0", "to_state": "goto_end_0", "write": "0", "action": "RIGHT" }
+        ],
+        "check_1": [
+            { "read" : "1", "to_state": "goto_start", "write": "+", "action": "LEFT" },
+            { "read" : "0", "to_state": "invalidate_phase_1", "write": "0", "action": "LEFT" },
+            { "read" : "-", "to_state": "validate_phase_1", "write": "-", "action": "LEFT" },
+            { "read" : "+", "to_state": "validate_phase_1", "write": "+", "action": "LEFT" }
+
+        ],
+        "check_0": [
+            { "read" : "0", "to_state": "goto_start", "write": "-", "action": "LEFT" },
+            { "read" : "1", "to_state": "invalidate_phase_1", "write": "1", "action": "LEFT" },
+            { "read" : "-", "to_state": "validate_phase_1", "write": "-", "action": "LEFT" },
+            { "read" : "+", "to_state": "validate_phase_1", "write": "+", "action": "LEFT" }
+        ],
+        "invalidate_phase_1": [
+            { "read" : ".", "to_state": "invalidate_phase_2", "write": ".", "action": "RIGHT" },
+            { "read" : "-", "to_state": "invalidate_phase_1", "write": "-", "action": "LEFT" },
+            { "read" : "+", "to_state": "invalidate_phase_1", "write": "+", "action": "LEFT" },
+            { "read" : "1", "to_state": "invalidate_phase_1", "write": "1", "action": "LEFT" },
+            { "read" : "0", "to_state": "invalidate_phase_1", "write": "0", "action": "LEFT" }
+        ],
+        "invalidate_phase_2": [
+            { "read" : ".", "to_state": "false", "write": "n", "action": "RIGHT" },
+            { "read" : "-", "to_state": "invalidate_phase_2", "write": "0", "action": "RIGHT" },
+            { "read" : "+", "to_state": "invalidate_phase_2", "write": "1", "action": "RIGHT" },
+            { "read" : "1", "to_state": "invalidate_phase_2", "write": "1", "action": "RIGHT" },
+            { "read" : "0", "to_state": "invalidate_phase_2", "write": "0", "action": "RIGHT" }
+        ],
+        "validate_phase_1": [
+            { "read" : ".", "to_state": "validate_phase_2", "write": ".", "action": "RIGHT" },
+            { "read" : "-", "to_state": "validate_phase_1", "write": "-", "action": "LEFT" },
+            { "read" : "+", "to_state": "validate_phase_1", "write": "+", "action": "LEFT" },
+            { "read" : "1", "to_state": "validate_phase_1", "write": "1", "action": "LEFT" },
+            { "read" : "0", "to_state": "validate_phase_1", "write": "0", "action": "LEFT" }
+        ],
+        "validate_phase_2": [
+            { "read" : ".", "to_state": "true", "write": "y", "action": "RIGHT" },
+            { "read" : "-", "to_state": "validate_phase_2", "write": "0", "action": "RIGHT" },
+            { "read" : "+", "to_state": "validate_phase_2", "write": "1", "action": "RIGHT" },
+            { "read" : "1", "to_state": "validate_phase_2", "write": "1", "action": "RIGHT" },
+            { "read" : "0", "to_state": "validate_phase_2", "write": "0", "action": "RIGHT" }
+        ]
+    }
+}
