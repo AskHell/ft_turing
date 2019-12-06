@@ -1,0 +1,22 @@
+{
+  "name" : "infinit_loop",
+  "alphabet": [ "." ],
+  "blank" : ".",
+  "states" : [ "init", "one", "two", "three", "HALT" ],
+  "initial" : "init",
+  "finals" : [ "HALT" ],
+  "transitions" : {
+      "init": [
+          { "read" : ".", "to_state": "one", "write": ".", "action": "RIGHT" }
+      ],
+      "one": [
+          { "read" : ".", "to_state": "two", "write": ".", "action": "LEFT" }
+      ],
+      "two": [
+          { "read" : ".", "to_state": "three", "write": ".", "action": "LEFT" }
+      ],
+      "three": [
+          { "read" : ".", "to_state": "init", "write": ".", "action": "RIGHT" }
+      ]
+  }
+}

@@ -2,31 +2,32 @@ module Main where
 
 import qualified Data.ByteString.Lazy as B
 import System.Environment (getArgs, getProgName)
---import System.Directory
+import Data.Map.Strict (fromList, member, insert)
 import System.IO
-import Data.List
+import Data.List hiding (insert)
 import Text.Printf (printf)
 
 import Machine ( Machine(..), encode, eitherDecode )
-import Execute ( MachineState(..), step )
+import Execute ( MachineState(..), step, Index, Tape )
 import Generate ( generatePalindrome )
 
-execute :: MachineState -> String -> Int -> String
-execute m acc i
-    | elem (state m) (finals $ machine m) =
-        printf "%s\n%s" acc $ show m
-    | i == 0 =
-       printf "%s\n%s" acc $ show m
-execute m acc i =
-    let new_m = step m in
-    let new_acc = printf "%s\n%s" acc $ show m in
-    execute new_m new_acc (i - 1)
+execute :: Machine -> MachineState -> String -> Index -> String
+execute m ms acc i
+    | elem (state ms) (finals m) =
+        printf "%s\n%s" acc $ show ms
+    | member ms i =
+       printf "%s\n%s\nmachine killed (machine is stuck)" acc $ show ms
+execute m ms acc i =
+    let new_index = insert ms True i in
+    let new_ms = step m ms in
+    let new_acc = printf "%s\n%s" acc $ show ms in
+    execute m new_ms new_acc new_index
 
 ft_turing :: String -> Either String Machine -> String
 ft_turing _ (Left s) = s
 ft_turing tape (Right m) =
-    let machine_state = MachineState 0 (initial m) tape m in
-    printf "%s\n" $ execute machine_state "" 10000
+    let machine_state = MachineState 0 (initial m) tape in
+    printf "%s\n" $ execute m machine_state "" $ fromList []
 
 usage :: IO ()
 usage = putStrLn "usage: ft_turing [-h] jsonfile input\n\npositional arguments:\n  jsonfile\t\tjson description of the machine\n  input\t\t\tinput of the machine\n\noptional arguments:\n  -h, --help\t\tshow this help message and exit"

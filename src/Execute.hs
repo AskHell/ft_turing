@@ -1,21 +1,27 @@
 module Execute (
     MachineState(..),
-    step
+    step,
+    Tape,
+    Index
 ) where
+
+import Data.Map.Strict as M
+import Data.List as L
+import Data.Map.Strict (fromList, Map(..))
+import Text.Printf (printf)
 
 import Machine (Machine(..), Letter, State, Transition(..), Action(..))
 import Prelude hiding (read)
-import Data.Map.Strict as M
-import Data.List as L
-import Data.Map.Strict (fromList)
-import Text.Printf (printf)
+
+type Tape = String
 
 data MachineState = MachineState {
     position    :: Int,
     state       :: State,
-    input       :: String,
-    machine     :: Machine
-}
+    input       :: Tape
+} deriving (Eq, Ord)
+
+type Index = Map MachineState Bool
 
 enumerate :: [b] -> [(Int, b)]
 enumerate = zip [0..]
@@ -35,14 +41,14 @@ itemOf _ [] = Nothing
 itemOf 0 (head : _) = Just head
 itemOf i (_ : tail) = itemOf (i - 1) tail
 
-execute :: MachineState -> Maybe Transition -> MachineState
-execute machine_state (Just transition) =
+execute :: Machine -> MachineState -> Maybe Transition -> MachineState
+execute machine machine_state (Just transition) =
     let partial_change_by_id = change_by_id (position machine_state) (write transition) in
     let new_input = L.map partial_change_by_id $ enumerate $ input machine_state in
     let new_pos = change_pos (action transition) (position machine_state) in
     let new_state = to_state transition in
-    MachineState new_pos new_state new_input (machine machine_state)
-execute machine_state Nothing = machine_state
+    MachineState new_pos new_state new_input
+execute machine machine_state Nothing = machine_state
 
 default_list :: Maybe [a] -> [a]
 default_list (Just a) = a
@@ -52,17 +58,17 @@ default_read :: Maybe Char -> Letter -> Letter
 default_read (Just c) _ = [c]
 default_read (Nothing) def = def
 
-step :: MachineState -> MachineState
-step machine_state
+step :: Machine -> MachineState -> MachineState
+step machine machine_state
     -- current state is part of [finals]
-    | elem (state machine_state) $ finals $ machine machine_state =
+    | elem (state machine_state) $ finals machine =
         machine_state
-step machine_state =
+step machine machine_state =
     -- lookup list: (read, transition). Ex: (".", {read: ".", to_state: "scanright", ...})
-    let transition_list = default_list $ M.lookup (state machine_state) $ transitions $ machine machine_state in
+    let transition_list = default_list $ M.lookup (state machine_state) $ transitions machine in
     let possible_actions = [ (read x, x) | x <- transition_list ] in
-    let current_read = default_read (itemOf (position machine_state) (input machine_state)) $ blank $ machine machine_state in
-    execute machine_state $ L.lookup current_read possible_actions
+    let current_read = default_read (itemOf (position machine_state) (input machine_state)) $ blank machine in
+    execute machine machine_state $ L.lookup current_read possible_actions
 
 showMachineState :: MachineState -> String
 showMachineState ms =
