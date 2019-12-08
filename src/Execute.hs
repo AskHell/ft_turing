@@ -58,6 +58,15 @@ default_read :: Maybe Char -> Letter -> Letter
 default_read (Just c) _ = [c]
 default_read (Nothing) def = def
 
+extandList :: Letter -> Int -> Tape -> (Letter, Tape)
+extandList blank index tape
+    | index < 0 = (blank, tape)
+    | length tape > index = ([tape !! index], tape)
+    | length tape <= index =
+        let curr = length tape in
+        let to_add = index - curr in
+        (blank, tape ++ [ blank !! 0 | _ <- [0..to_add] ])
+
 step :: Machine -> MachineState -> MachineState
 step machine machine_state
     -- current state is part of [finals]
@@ -67,8 +76,9 @@ step machine machine_state =
     -- lookup list: (read, transition). Ex: (".", {read: ".", to_state: "scanright", ...})
     let transition_list = default_list $ M.lookup (state machine_state) $ transitions machine in
     let possible_actions = [ (read x, x) | x <- transition_list ] in
-    let current_read = default_read (itemOf (position machine_state) (input machine_state)) $ blank machine in
-    execute machine machine_state $ L.lookup current_read possible_actions
+    let (current_read, new_tape) = extandList (blank machine) (position machine_state) (input machine_state) in
+    let new_machine_state = MachineState (position machine_state) (state machine_state) new_tape in
+    execute machine new_machine_state $ L.lookup current_read possible_actions
 
 showMachineState :: MachineState -> String
 showMachineState ms =
