@@ -10,6 +10,7 @@ import Text.Printf (printf)
 import Machine ( Machine(..), encode, eitherDecode )
 import Execute ( MachineState(..), step, Index, Tape )
 import Generate ( generatePalindrome )
+import Translate as T
 
 execute :: Machine -> MachineState -> String -> Index -> String
 execute m ms acc i
@@ -29,6 +30,12 @@ ft_turing tape (Right m) =
     let machine_state = MachineState 0 (initial m) tape in
     printf "%s\n" $ execute m machine_state "" $ fromList []
 
+ft_translate :: String -> Either String Machine -> String
+ft_translate _ (Left s) = s
+ft_translate tape (Right m) =
+    let machine_state = MachineState 0 (initial m) tape in
+    printf "%s\n" $ T.translate m machine_state
+
 usage :: IO ()
 usage = putStrLn "usage: ft_turing [-h] jsonfile input\n\npositional arguments:\n  jsonfile\t\tjson description of the machine\n  input\t\t\tinput of the machine\n\noptional arguments:\n  -h, --help\t\tshow this help message and exit"
 
@@ -42,13 +49,16 @@ dispatch ("generate" : machine : _)
 dispatch (help : _)
     | help == "-h" || help == "--help" =
         usage
-dispatch (machine : input : _)
-    | (not $ machine == []) && (not $ input == []) = do -- when both are valid
+dispatch (subprogram : machine : tape : _)
+    | (not $ machine == []) && (not $ tape == []) && subprogram == "run" = do
         file_content <- B.readFile machine
-        putStrLn $ ft_turing input $ eitherDecode file_content
+        putStrLn $ ft_turing tape $ eitherDecode file_content
+    | (not $ machine == []) && (not $ tape == []) && subprogram == "translate" = do
+        file_content <- B.readFile machine
+        putStrLn $ ft_translate tape $ eitherDecode file_content
     | machine == [] =
         display_error "jsonfile is an empty string"
-    | input == [] =
+    | tape == [] =
         display_error "input is an empty string"
 dispatch _ =
     usage

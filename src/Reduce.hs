@@ -1,5 +1,5 @@
 module Reduce (
-    reduce',
+    reduce'
 ) where
 
 stack_either :: ([a], [b]) -> Either a b -> ([a], [b])

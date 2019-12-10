@@ -12,6 +12,7 @@ import Text.Printf (printf)
 
 import Machine (Machine(..), Letter, State, Transition(..), Action(..))
 import Prelude hiding (read)
+import Utils (enumerate)
 
 type Tape = String
 
@@ -22,9 +23,6 @@ data MachineState = MachineState {
 } deriving (Eq, Ord)
 
 type Index = Map MachineState Bool
-
-enumerate :: [b] -> [(Int, b)]
-enumerate = zip [0..]
 
 change_by_id :: Int -> Letter -> (Int, Char) -> Char
 change_by_id id new (i, _)

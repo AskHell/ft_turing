@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f1a94e21b2295959f773c0d45bf7a0240ea4ad1ceb4a9f77cae8669b939ffdf2
+-- hash: b17d0450cecff09b9c09802943bf371aff0a78031c22de783f9cf8b09f7ee235
 
 name:           ft-turing
 version:        0.1.0.0
@@ -31,6 +31,8 @@ library
       Generate
       Machine
       Reduce
+      Translate
+      Utils
   other-modules:
       Paths_ft_turing
   hs-source-dirs:
