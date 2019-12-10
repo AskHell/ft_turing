@@ -31,7 +31,7 @@ translateTransition t_alphabet t_states (s, t) =
     let t_action = case action t of LEFT -> "1"
                                     RIGHT -> "11"
     in
-    printf "%s0%s0%s0%s0%s00\n" t_s t_read t_to_state t_write t_action
+    printf "%s0%s0%s0%s0%s00" t_s t_read t_to_state t_write t_action
 
 translateState :: TranslateTable Letter -> TranslateTable State -> Map State [Transition] -> [String]
 translateState t_alphabet t_states states =
@@ -39,17 +39,9 @@ translateState t_alphabet t_states states =
     let transition_list = foldl (\acc x -> acc ++ reassemble x) [] states_list in
     map (translateTransition t_alphabet t_states) transition_list
 
-buildBuffer :: Int -> String -> String -> String
-buildBuffer size t_symbol t_state =
-    let t_symbol_size = length t_symbol in
-    let t_state_size = length t_state in
-    let tmp = printf "%s0%s0" t_state t_symbol in
-    tmp ++ [ '0' | _ <- [0..(size - t_symbol_size - t_state_size - 2)] ]
-
 translateSymbol :: TranslateTable Letter -> Letter -> String
 translateSymbol t_alphabet a =
     unwrap' "" $ lookup a t_alphabet
-
 
 translateTape :: TranslateTable Letter -> Tape -> Tape
 translateTape t_alphabet tape =
@@ -65,8 +57,8 @@ translate m ms =
     let t_head = translateSymbol t_alphabet [head $ input ms] in
     let t_tape = translateTape t_alphabet $ input ms in
     ">" ++
-    buildBuffer (length t_alphabet + length t_states + 2) t_head t_initial ++ "\n" ++
-    foldl (++) "" t_transitions ++ "\n>" ++
+    [ '0' | _ <- [0..(length t_alphabet + length t_states + 1)]] ++ "Y" ++
+    foldl (\a x -> x ++ a) "" t_transitions ++ "0Z" ++
     t_tape
 
 
