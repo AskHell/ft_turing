@@ -9,7 +9,8 @@ import Text.Printf (printf)
 
 import Machine ( Machine(..), encode, eitherDecode )
 import Execute ( MachineState(..), step, Index, Tape )
-import Generate ( generatePalindrome )
+import Generate.Palindrome ( generatePalindrome )
+import Generate.Universal ( generateUTM )
 import Translate as T
 
 execute :: Machine -> MachineState -> String -> Index -> String
@@ -46,6 +47,8 @@ dispatch :: [String] -> IO ()
 dispatch ("generate" : machine : _)
     | machine == "palindrome" =
         putStrLn $ generatePalindrome
+    | machine == "UTM" =
+        putStrLn $ generateUTM
 dispatch (help : _)
     | help == "-h" || help == "--help" =
         usage

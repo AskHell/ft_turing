@@ -1,13 +1,13 @@
-module Generate (
+module Generate.Palindrome (
     generatePalindrome
 ) where
 
-import Machine as M
 import Data.Map.Strict (fromList)
 import Data.Char (toUpper)
 import Data.ByteString (ByteString)
 
-type Alphabet = [M.Letter]
+import Machine as M
+import Generate.Utils (Alphabet, fromMachineToJson)
 
 stringToUpper :: String -> String
 stringToUpper = map toUpper
@@ -84,4 +84,4 @@ generatePalindrome =
     let finals = [ "True", "False" ] in
     let states = finals ++ [ name | (name, _) <- transitions_list ] in
     let alphaset = [ ".", "y", "n" ] ++ lowerAlphabet ++ upperAlphabet in
-    filter (\x -> not $ x == '\\') $ show $ M.encode $ Machine "palindrome" alphaset "." states "init" finals transitions
+    fromMachineToJson $ Machine "palindrome" alphaset "." states "init" finals transitions
