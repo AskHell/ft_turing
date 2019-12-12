@@ -3,9 +3,10 @@ module Generate.Universal (
 ) where
 
 import Data.List
+import Data.Map.Strict (Map, fromList)
 
-import Machine (Transition(Transition), State, Action(..), Letter)
-import Generate.Utils (Alphabet)
+import Machine (Transition(Transition), State, Action(..), Letter, Machine(Machine))
+import Generate.Utils (Alphabet, fromMachineToJson)
 
 -- [This is not valid haskell code]
 -- Describes small bricks generators used to create the UTM
@@ -44,7 +45,10 @@ expect name letters outcomes (c_state, c_action) =
 search_left :: Name -> Letter -> Outcome -> Coherant -> Component
 search_left name letter outcome (c_state, c_action) =
     let failed_transition = (c_state, ">", c_action) in
-    expect name [letter, ">"] [outcome, failed_transition] (name, LEFT)
+    expect name
+        [letter, ">"]
+        [outcome, failed_transition]
+        (name, LEFT)
 
 -- Scans the tape to the right serching for a specific Letter
 -- IF found Letter, first Outcome is executed
@@ -52,9 +56,24 @@ search_left name letter outcome (c_state, c_action) =
 search_right :: Name -> Letter -> Outcome -> Coherant -> Component
 search_right name letter outcome (c_state, c_action) =
     let failed_transition = (c_state, ".", c_action) in
-    expect name [letter, "."] [outcome, failed_transition] (name, RIGHT)
+    expect name
+        [letter, "."]
+        [outcome, failed_transition]
+        (name, RIGHT)
 
-generateUTM = show $ search_left "search_Y_left" "Y" ("found", "Y", RIGHT) ("notfound", LEFT)
+generateUTM =
+    let transitions_list = search_right "search_Y_right" "Y" ("found", "Y", RIGHT) ("notfound", LEFT) in
+    let transitions = fromList transitions_list in
+    let finals = ["STOP", "found", "notfound"] in
+    let states = (map (\(name, _) -> name) transitions_list) ++ finals in
+    fromMachineToJson $ Machine
+        "UTM"              -- name
+        alphabet           -- alphabet
+        "."                -- blank
+        states             -- states
+        "search_Y_right"    -- initial
+        finals             -- finals
+        transitions        -- transitions
 
 {-
 search_not_right :: Name -> Letter -> Outcome -> Component
