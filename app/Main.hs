@@ -48,7 +48,9 @@ dispatch ("generate" : machine : _)
     | machine == "palindrome" =
         putStrLn $ generatePalindrome
     | machine == "UTM" =
-        putStrLn $ generateUTM
+        putStrLn $ show $ generateUTM
+dispatch ("run" : "UTM" : tape : _) =
+    putStrLn $ ft_turing tape $ Right generateUTM
 dispatch (help : _)
     | help == "-h" || help == "--help" =
         usage
