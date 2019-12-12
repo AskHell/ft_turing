@@ -15,11 +15,13 @@ import Data.ByteString.Lazy (ByteString)
 import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Aeson as Aeson (encode, eitherDecode)
 import qualified Data.ByteString.Lazy as B (ByteString)
+import qualified Data.List (concat)
 
-import Data.Map.Strict (Map)
+import Data.Map.Strict as Map (Map, singleton, insert, member, lookup)
 
 type Letter = String
 type State = String
+type Error = String
 
 data Action = LEFT | RIGHT deriving (Generic)
 instance FromJSON Action
@@ -51,10 +53,13 @@ type Tape = String
 
 data MachineState =
   MachineState {
-    bandeau :: Tape,
+    tape :: Tape,
     cursor :: Int,
     state :: State
-  }
+  } deriving (Ord)
+
+-- TODO: understand this crap
+deriving instance Eq (Int) => Eq (MachineState)
 
 instance FromJSON Machine
 instance ToJSON Machine
@@ -79,9 +84,48 @@ encode = Aeson.encode
 eitherDecode :: ByteString -> Either String Machine
 eitherDecode bs = Aeson.eitherDecode bs >>= valid
 
--- step :: Machine -> MachineState -> MachineState
--- process :: Machine -> Tape -> Tape
+type NormalizedStates = (Map MachineState Bool, [Tape])
+
+insertNormalizedStates :: NormalizedStates -> MachineState -> NormalizedStates
+insertNormalizedStates states machineState =
+  let newMap = insert machineState True (fst states) in
+    let newTapes = (snd states) ++ [tape machineState] in
+      (newMap, newTapes)
+
+getTransition :: Machine -> State -> Maybe Transition
+getTransition machine state = do
+  transitions <- Map.lookup state (transitions machine)
+  return $ head transitions
+
+step :: Machine -> MachineState -> Either Error MachineState
+step machine machineState =
+  let transitionMaybe = getTransition machine (state machineState) in
+    case transitionMaybe of
+      Just transition -> Right machineState
+      Nothing -> Left $ "Unknown state: "
+
+processAux :: Machine -> NormalizedStates -> MachineState -> (NormalizedStates, Error)
+processAux machine states currentState = do
+  nextState <- step machine currentState
+  case nextState of
+    Right n ->
+      if member n (fst states) then
+        (states, "Machine got blocked...")
+      else
+        let newStates = insertNormalizedStates states n in
+        (newStates, "")
+    Left error -> (states, error)
+
+process :: Machine -> Tape -> (NormalizedStates, Error)
+process m tape =
+  let initialMachineState = MachineState tape 0 (initial m) in
+  let initialState = (singleton initialMachineState True, [tape]) in
+  processAux m initialState initialMachineState
+
 -- processVerbose :: Machine -> Tape -> (Tape, [MachineState])
+
+stringifyTapes :: [Tape] -> String
+stringifyTapes tapes = concat tapes
 
 checkChar :: [Letter] -> Char -> Bool
 checkChar alphabet c = or $ map (\letter -> head letter == c) alphabet 
@@ -99,4 +143,12 @@ run :: B.ByteString -> String -> Either String String
 run description_file input = do
   machine <- eitherDecode description_file
   tape <- parseTape (alphabet machine) input
-  Right "All good, time to process now..."
+  let final = process machine tape in
+    let states = fst final in
+      let error = snd final in
+        case error of
+          [] ->
+            let stringified = stringifyTapes $ snd states in
+            Right stringified
+          -- TODO: display steps before the error occured
+          error -> Left error
