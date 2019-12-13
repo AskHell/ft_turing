@@ -27,6 +27,8 @@ type Coherant = (State, Action)
 alphabet = [".", ">", "1", "0", "X", "Y", "B", "Z"]
 
 stop = ("STOP", LEFT)
+false = ("FALSE", LEFT)
+true = ("TRUE", LEFT)
 
 encapsulate :: State -> State -> State
 encapsulate name sub_name = printf "%s[%s]" name sub_name
@@ -81,12 +83,62 @@ both_way_search_left name e out fail =
     search_left name -- Search for X
         e
         out
-        (name' "search_X_right", RIGHT)
+        (name' "search_right", RIGHT)
     ++
-    search_right (name' "search_X_right")
+    search_right (name' "search_right")
         e
         out
         fail
+
+-- Does a both way search of 'e' starting with Left
+both_way_search_right :: State -> Letter -> Outcome -> Coherant -> Component
+both_way_search_right name e out fail =
+    let name' = encapsulate name in
+    search_right name -- Search for X
+        e
+        out
+        (name' "search_left", LEFT)
+    ++
+    search_left (name' "search_left")
+        e
+        out
+        fail
+
+-- Replaces all of [Letter] by provided Letter and stops at one of provided [Letter]
+-- Calls Coherant when found one of stops letters
+replace_to :: State -> [Letter] -> [Letter] -> Letter -> Coherant -> Component
+replace_to name es stops replace out =
+    let not_stops = alphabet \\ ("." : stops) in
+    expect name
+        (es ++ not_stops)
+        ([ (name, replace, RIGHT) | _ <- es ] ++ [ (name, nt, RIGHT) | nt <- not_stops ])
+        out
+
+replace_at_left_to :: State -> Letter -> [Letter] -> [Letter] -> Letter -> Coherant -> Component
+replace_at_left_to name at es stops replace out =
+    let name' = encapsulate name in
+    search_left name at (name' "finish_replace", at, RIGHT) stop ++
+    replace_to (name' "finish_replace") es stops replace out
+
+-- Check if Letters are all the same stoping at one of provided [Letter].
+-- Calls first Coherant if valid, second if invalid. Replaces all valid letters by provided Letter
+-- ex: is_only _ e ["0"] 1 true false ->
+--      eeeeee0000 -> true ->   1111110000
+--      eeee1e0000 -> false ->  1111110000
+is_only :: State -> Letter -> [Letter] -> Letter -> Coherant -> Coherant -> Component
+is_only name e stops replace out_true out_false =
+    let name' = encapsulate name in
+    let not_stops = alphabet \\ ("." : stops) in
+    expect name
+        (e : not_stops)
+        ((name, replace, RIGHT) : [ (name' "finish", replace, RIGHT) | a <- not_stops ])
+        out_true
+    ++
+    replace_to (name' "finish")
+        [e]
+        ("." : stops)
+        replace
+        out_false
 
 -- Moves 1 case right everything after current position
 -- First case is filled by provided e. Calls provided Coherant at the end of the tape
@@ -115,8 +167,8 @@ shift_right name e (to_state, action) =
 --      X111100Y01011.......
 --  --> X111100Y111101011..
 --      ↑
-copy_from_to :: State -> Letter -> Letter -> Letter -> Coherant -> Component
-copy_from_to name e x y out =
+copy :: State -> Letter -> Letter -> Letter -> Coherant -> Component
+copy name e x y out =
     let name' = encapsulate name in
     both_way_search_left name x (name' "copy_e_from_X_to_Y", x, RIGHT) stop ++ -- search x
     expect (name' "copy_e_from_X_to_Y") -- Search next e ignoring B, replace this e by B
@@ -146,10 +198,105 @@ copy_from_to name e x y out =
         [(name' "finished[replace_B]", e, LEFT)]
         out
 
+-- Check if the number of specified 'e's are the same for provided X and Y.
+-- Calls first Coherant if True, calls the second Coherant if False.
+match :: State -> Letter -> Letter -> Letter -> Coherant -> Coherant -> Component
+match name e x y valid invalid =
+    let name' = encapsulate name in
+    both_way_search_left name x (name' "match", x, RIGHT) stop ++
+    expect (name' "match") -- Search next e ignoring B replace this e by B
+        [e, "B"]
+        [
+            (name' "match[search_Y_right]", "B", RIGHT),
+            (name' "match", "B", RIGHT)
+        ]
+        (name' "match[final_X]", RIGHT)
+    ++
+    search_right (name' "match[search_Y_right]") -- Goto Y
+        y
+        (name' "match[find_end_Y]", y, RIGHT)
+        stop
+    ++
+    expect (name' "match[find_end_Y]") -- Search next e ignoring B replace this e by B
+        [e, "B"]
+        [
+            (name, "B", RIGHT),
+            (name' "match[find_end_Y]", "B", RIGHT)
+        ]
+        (name' "match[final_Y_invalid]", RIGHT)
+    ++
+    replace_at_left_to (name' "match[final_Y_invalid]")
+        x ["B", e] ["0"] e (name' "match[invalidate_right]", RIGHT) ++
+    both_way_search_left (name' "match[final_Y]")
+        x
+        (name' "match[final_Y[check_X]]", x, RIGHT) stop
+    ++
+    is_only (name' "match[final_Y[check_X]]")
+        "B"
+        ["0", x, y]
+        e
+        (name' "match[validate_right]", LEFT)
+        (name' "match[invalidate_right]", LEFT)
+    ++
+    both_way_search_right (name' "match[final_X]")
+        y
+        (name' "match[final_X[check_Y]]", y, RIGHT) stop
+    ++
+    is_only (name' "match[final_X[check_Y]]")
+        "B"
+        ["0", x, y]
+        e
+        (name' "match[validate_left]", LEFT)
+        (name' "match[invalidate_left]", LEFT)
+    ++
+    search_right (name' "match[validate_right]")
+        y
+        ((name' "match[validate_right[replace]]"), y, RIGHT)
+        stop
+    ++
+    replace_to (name' "match[validate_right[replace]]")
+        ["B"]
+        ["0"]
+        e
+        valid
+    ++
+    search_left (name' "match[validate_left]")
+        x
+        ((name' "match[validate_left[replace]]"), x, RIGHT)
+        stop
+    ++
+    replace_to (name' "match[validate_left[replace]]")
+        ["B"]
+        ["0"]
+        e
+        valid
+    ++
+    search_right (name' "match[invalidate_right]")
+        y
+        ((name' "match[invalidate_right[replace]]"), y, RIGHT)
+        stop
+    ++
+    replace_to (name' "match[invalidate_right[replace]]")
+        ["B"]
+        ["0"]
+        e
+        invalid
+    ++
+    search_left (name' "match[invalidate_left]")
+        x
+        ((name' "match[invalidate_left[replace]]"), x, RIGHT)
+        stop
+    ++
+    replace_to (name' "match[invalidate_left[replace]]")
+        ["B"]
+        ["0"]
+        e
+        invalid
+
 generateUTM =
-    let transitions_list = copy_from_to "utm" "1" "X" "Y" stop in
+    let transitions_list = match "utm" "1" "X" "Y" true false in
     let transitions = fromList transitions_list in
-    let finals = ["STOP"] in
+    let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
     Machine
         "UTM"              -- name
