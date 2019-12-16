@@ -192,15 +192,14 @@ collapse_to :: State -> Letter -> Letter -> Coherant -> Component
 collapse_to name from to out =
     let name' = encapsulate name in
     let no_stop = alphabet \\ [from, to, "."] in
-    apply name (name' "check", RIGHT) ++
-    expect (name' "check")
+    expect name
         no_stop
         [(name' "collapse_one", a, RIGHT) | a <- no_stop ]
         out
     ++
     shift_left (name' "collapse_one")
         from
-        (name' "check", RIGHT)
+        (name, RIGHT)
 
 -- Copy every specified 'e' from after specified 'X' to after specified 'Y'
 -- Calls provided Coherant at X
@@ -238,6 +237,17 @@ copy name e x y out =
         ["B"]
         [(name' "finished[replace_B]", e, LEFT)]
         out
+
+-- Substitute Symbol of second Letter by symbol of the first Letter stopping at the third letter
+-- Calls Coherant at unknown place
+--      X1110Y10
+--      X1110Y1110
+substitute :: State -> Letter -> Letter -> Letter -> Letter -> Coherant -> Component
+substitute name e from to l_stop out =
+    let name' = encapsulate name in
+    both_way_search_right name to (name' "collapse", to, RIGHT) stop ++
+    collapse_to (name' "collapse") to l_stop (name' "copy", RIGHT) ++
+    copy (name' "copy") e from to out
 
 -- Check if the number of specified 'e's are the same for provided X and Y.
 -- Calls first Coherant if True, calls the second Coherant if False.
@@ -335,7 +345,7 @@ match name e x y valid invalid =
         invalid
 
 generateUTM =
-    let transitions_list = collapse_to "utm" "X" "0" stop in
+    let transitions_list = substitute "utm" "1" "X" "Y" "0" stop in
     let transitions = fromList transitions_list in
     let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
