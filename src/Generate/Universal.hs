@@ -161,6 +161,24 @@ shift_right name e (to_state, action) =
         (to_state, action)
     | a <- no_blank ]
 
+-- Moves 1 case left everything after current position
+-- Calls provided Coherant at the provided Letter
+--      1000111010
+--      000111010.
+shift_left :: State -> Letter -> Coherant -> Component
+shift_left name l_stop (to_state, action) =
+    let name' = encapsulate name in
+    let no_stop = delete l_stop $ delete ">" alphabet in
+    let name_list = [ name' $ "shift_" ++ a | a <- no_stop ] in
+    let generate_outcomes = (\a -> [ (n, a, LEFT) | n <- name_list ]) in
+    search_right name "." (name' "shift_.", ".", LEFT) (name' "shift_.", LEFT)
+    ++
+    [ head $ expect (name' $ "shift_" ++ a) -- Other folowing elements
+        (l_stop : ">" : no_stop)
+        ((to_state, l_stop, action) : (to_state, ">", action) : generate_outcomes a)
+        (to_state, action)
+    | a <- no_stop ]
+
 -- Copy every specified 'e' from after specified 'X' to after specified 'Y'
 -- Calls provided Coherant at X
 -- ex: e = 1.
@@ -294,7 +312,7 @@ match name e x y valid invalid =
         invalid
 
 generateUTM =
-    let transitions_list = match "utm" "1" "X" "Y" true false in
+    let transitions_list = shift_left "utm" "X" stop in
     let transitions = fromList transitions_list in
     let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
