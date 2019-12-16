@@ -44,6 +44,11 @@ expect name letters outcomes (c_state, c_action) =
         [ Transition read c_state read c_action | read <- diff_alpha ]
     ) ]
 
+-- Calls the Coherant whatever Letter is read
+apply :: State -> Coherant -> Component
+apply name out =
+    expect name [] [] out
+
 -- Scans the tape to the left searching for a specific Letter
 -- IF found Letter, first Outcome is executed
 -- ELSE found '>', second Outcome is executed
@@ -179,6 +184,24 @@ shift_left name l_stop (to_state, action) =
         (to_state, action)
     | a <- no_stop ]
 
+-- Removes every element between two Letter, shifting the right side of the tape over it.
+-- Calls Coherant on the first letter
+--      X11110Y1111
+--      X0Y1111
+collapse_to :: State -> Letter -> Letter -> Coherant -> Component
+collapse_to name from to out =
+    let name' = encapsulate name in
+    let no_stop = alphabet \\ [from, to, "."] in
+    apply name (name' "check", RIGHT) ++
+    expect (name' "check")
+        no_stop
+        [(name' "collapse_one", a, RIGHT) | a <- no_stop ]
+        out
+    ++
+    shift_left (name' "collapse_one")
+        from
+        (name' "check", RIGHT)
+
 -- Copy every specified 'e' from after specified 'X' to after specified 'Y'
 -- Calls provided Coherant at X
 -- ex: e = 1.
@@ -312,7 +335,7 @@ match name e x y valid invalid =
         invalid
 
 generateUTM =
-    let transitions_list = shift_left "utm" "X" stop in
+    let transitions_list = collapse_to "utm" "X" "0" stop in
     let transitions = fromList transitions_list in
     let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
