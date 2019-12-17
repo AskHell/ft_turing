@@ -219,7 +219,7 @@ copy name e x y out =
         ]
         (name' "finished", LEFT)
     ++
-    search_right (name' "copy_e_from_X_to_Y[search_Y_right]") -- Search for Y
+    both_way_search_right (name' "copy_e_from_X_to_Y[search_Y_right]") -- Search for Y
         y
         (name' "copy_e_from_X_to_Y[shift_right]", y, RIGHT)
         stop
@@ -345,7 +345,7 @@ match name e x y valid invalid =
         invalid
 
 generateUTM =
-    let transitions_list = substitute "utm" "1" "X" "Y" "0" stop in
+    let transitions_list = copy "utm" "1" "Y" "X" stop in
     let transitions = fromList transitions_list in
     let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
