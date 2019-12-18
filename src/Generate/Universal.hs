@@ -283,9 +283,20 @@ copy_inv name e x y out =
 substitute :: State -> Letter -> Letter -> Letter -> Letter -> Coherant -> Component
 substitute name e from to l_stop out =
     let name' = encapsulate name in
-    both_way_search_right name to (name' "collapse", to, RIGHT) stop ++
-    collapse_to (name' "collapse") to l_stop (name' "copy", RIGHT) ++
-    copy (name' "copy") e from to out
+    both_way_search_right name from (name' "collapse", to, RIGHT) stop ++
+    collapse_to (name' "collapse") from l_stop (name' "copy", RIGHT) ++
+    copy_inv (name' "copy") e from to out
+
+-- Substitute Symbol of second Letter by symbol of the first Letter stopping at the third letter
+-- Calls Coherant at unknown place
+--      X1110Y10
+--      X1110Y1110
+substitute_inv :: State -> Letter -> Letter -> Letter -> Letter -> Coherant -> Component
+substitute_inv name e from to l_stop out =
+    let name' = encapsulate name in
+    both_way_search_left name to (name' "collapse", to, RIGHT) stop ++
+    collapse_to (name' "collapse") to l_stop (name' "copy_inv", RIGHT) ++
+    copy_inv (name' "copy_inv") e from to out
 
 -- Check if the number of specified 'e's are the same for provided X and Y.
 -- Calls first Coherant if True, calls the second Coherant if False.
@@ -383,7 +394,7 @@ match name e x y valid invalid =
         invalid
 
 generateUTM =
-    let transitions_list = copy_inv "utm" "1" "X" "Y" stop in
+    let transitions_list = substitute_inv "utm" "1" "X" "Y" "0" stop in
     let transitions = fromList transitions_list in
     let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
