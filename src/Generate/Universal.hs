@@ -283,6 +283,44 @@ copy_inv name e x y out =
         e
         out
 
+-- Copy every specified 'e' from after specified 'Y' to after specified 'X'
+-- Calls provided Coherant at X
+-- ex: e = 1.
+--      X111100Y01011.......
+--  --> X111100Y111101011..
+--      ↑
+copy_unsafe_inv :: State -> Letter -> Letter -> Letter -> Coherant -> Component
+copy_unsafe_inv name e x y out =
+    let name' = encapsulate name in
+    both_way_search_right name y (name' "copy_e_from_Y_to_X", y, RIGHT) stop ++
+    expect (name' "copy_e_from_Y_to_X") -- Search next e ignoring B, replace this e by B
+        [e, "B"]
+        [
+            (name' "copy_e_from_Y_to_X[search_X_left]", "B", LEFT),
+            (name' "copy_e_from_Y_to_X", "B", RIGHT)
+        ]
+        (name' "finished", LEFT)
+    ++
+    search_left (name' "copy_e_from_Y_to_X[search_X_left]") -- Search for X
+        x
+        (name' "copy_e_from_Y_to_X[shift_right]", x, RIGHT)
+        stop
+    ++
+    search_not_right (name' "copy_e_from_Y_to_X[shift_right]") -- Search_end_of_e's and put e
+        e
+        (name, e, LEFT)
+    ++
+    search_left (name' "finished")
+        y
+        (name' "finished[replace_B]", y, RIGHT)
+        stop
+    ++
+    replace_to (name' "finished[replace_B]")
+        ["B"]
+        ["0"]
+        e
+        out
+
 -- Substitute Symbol of second Letter by symbol of the first Letter stopping at the third letter
 -- Calls Coherant at unknown place
 --      X1110Y10
@@ -304,6 +342,17 @@ substitute_inv name e from to l_stop out =
     both_way_search_left name from (name' "collapse", from, RIGHT) stop ++
     collapse_to (name' "collapse") from l_stop (name' "copy_inv", RIGHT) ++
     copy_inv (name' "copy_inv") e from to out
+
+-- Substitute Symbol of first Letter by Symbol of the second Letter stopping at the third letter
+-- Calls Coherant at unknown place
+--      X1110Y10
+--      X1110Y1110
+substitute_unsafe_inv :: State -> Letter -> Letter -> Letter -> Letter -> Coherant -> Component
+substitute_unsafe_inv name e from to l_stop out =
+    let name' = encapsulate name in
+    both_way_search_left name from (name' "collapse", from, RIGHT) stop ++
+    collapse_to (name' "collapse") from l_stop (name' "copy_inv", RIGHT) ++
+    copy_unsafe_inv (name' "copy_inv") e from to out
 
 -- Check if the number of specified 'e's are the same for provided X and Y.
 -- Calls first Coherant if True, calls the second Coherant if False.
@@ -401,19 +450,26 @@ match name e x y valid invalid =
         invalid
 
 step_1 :: State -> Coherant -> Component
-step_1 name out =
+step_1 name (to_state, action) =
     let name' = encapsulate name in
-    substitute_inv name "1" "X" "Y" "0" (name' "step_1_search_X", RIGHT) ++
+    substitute_unsafe_inv name "1" "X" "Y" "0" (name' "step_1_search_X", RIGHT) ++
     search_left (name' "step_1_search_X") "X" (name' "step_1_search_0", "X", RIGHT) stop ++
     search_right (name' "step_1_search_0") "0" (name' "step_1_add_X", "0", LEFT) stop ++
     apply (name' "step_1_add_X") (name' "step_1_add_X_2", RIGHT) ++
-    apply_unsafe (name' "step_1_add_X_2") (name' "step_1_remove_Y", "X", RIGHT) ++
-    replace_to (name' "step_1_remove_Y") ["Y"] ["Z"] "0" out
+    apply_unsafe (name' "step_1_add_X_2") (name' "step_1_goto_Z", "X", RIGHT) ++
+    search_right (name' "step_1_goto_Z") "Z" (to_state, "Z", action) stop
+
+step_2 :: State -> Coherant -> Component
+step_2 name out =
+    let name' = encapsulate name in
+    substitute_unsafe_inv name "1" "X" "Z" "0" out
 
 full_utm :: State -> Component
 full_utm name =
     let name' = encapsulate name in
-    step_1 name (name' "step_2", RIGHT)
+    step_1 name (name' "step_2", RIGHT) ++
+    step_2 (name' "step_2") (name' "step_3", RIGHT) ++
+    search_left (name' "step_3") "X" (name' "step_4", "0", RIGHT) stop
 
 generateUTM =
     let transitions_list = full_utm "utm" in
