@@ -44,6 +44,13 @@ expect name letters outcomes (c_state, c_action) =
         [ Transition read c_state read c_action | read <- diff_alpha ]
     ) ]
 
+apply_unsafe :: State -> Outcome -> Component
+apply_unsafe name (to_state, to_write, action) =
+    expect name
+        alphabet
+        [ (to_state, to_write, action) | _ <- alphabet ]
+        (to_state, action)
+
 -- Calls the Coherant whatever Letter is read
 apply :: State -> Coherant -> Component
 apply name out =
@@ -393,8 +400,23 @@ match name e x y valid invalid =
         e
         invalid
 
+step_1 :: State -> Coherant -> Component
+step_1 name out =
+    let name' = encapsulate name in
+    substitute_inv name "1" "X" "Y" "0" (name' "step_1_search_X", RIGHT) ++
+    search_left (name' "step_1_search_X") "X" (name' "step_1_search_0", "X", RIGHT) stop ++
+    search_right (name' "step_1_search_0") "0" (name' "step_1_add_X", "0", LEFT) stop ++
+    apply (name' "step_1_add_X") (name' "step_1_add_X_2", RIGHT) ++
+    apply_unsafe (name' "step_1_add_X_2") (name' "step_1_remove_Y", "X", RIGHT) ++
+    replace_to (name' "step_1_remove_Y") ["Y"] ["Z"] "0" out
+
+full_utm :: State -> Component
+full_utm name =
+    let name' = encapsulate name in
+    step_1 name (name' "step_2", RIGHT)
+
 generateUTM =
-    let transitions_list = substitute_inv "utm" "1" "X" "Y" "0" stop in
+    let transitions_list = full_utm "utm" in
     let transitions = fromList transitions_list in
     let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
