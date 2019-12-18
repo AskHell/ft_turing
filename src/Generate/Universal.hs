@@ -219,7 +219,7 @@ copy name e x y out =
         ]
         (name' "finished", LEFT)
     ++
-    both_way_search_right (name' "copy_e_from_X_to_Y[search_Y_right]") -- Search for Y
+    search_right (name' "copy_e_from_X_to_Y[search_Y_right]") -- Search for Y
         y
         (name' "copy_e_from_X_to_Y[shift_right]", y, RIGHT)
         stop
@@ -236,6 +236,44 @@ copy name e x y out =
     expect (name' "finished[replace_B]")
         ["B"]
         [(name' "finished[replace_B]", e, LEFT)]
+        out
+
+-- Copy every specified 'e' from after specified 'Y' to after specified 'X'
+-- Calls provided Coherant at X
+-- ex: e = 1.
+--      X111100Y01011.......
+--  --> X111100Y111101011..
+--      ↑
+copy_inv :: State -> Letter -> Letter -> Letter -> Coherant -> Component
+copy_inv name e x y out =
+    let name' = encapsulate name in
+    both_way_search_right name y (name' "copy_e_from_Y_to_X", y, RIGHT) stop ++
+    expect (name' "copy_e_from_Y_to_X") -- Search next e ignoring B, replace this e by B
+        [e, "B"]
+        [
+            (name' "copy_e_from_Y_to_X[search_X_left]", "B", LEFT),
+            (name' "copy_e_from_Y_to_X", "B", RIGHT)
+        ]
+        (name' "finished", LEFT)
+    ++
+    search_left (name' "copy_e_from_Y_to_X[search_X_left]") -- Search for X
+        x
+        (name' "copy_e_from_Y_to_X[shift_right]", x, RIGHT)
+        stop
+    ++
+    shift_right (name' "copy_e_from_Y_to_X[shift_right]") -- Shift everything to right and put e at the beginning
+        e
+        (name, RIGHT)
+    ++
+    search_left (name' "finished")
+        y
+        (name' "finished[replace_B]", y, RIGHT)
+        stop
+    ++
+    replace_to (name' "finished[replace_B]")
+        ["B"]
+        ["0"]
+        e
         out
 
 -- Substitute Symbol of second Letter by symbol of the first Letter stopping at the third letter
@@ -345,7 +383,7 @@ match name e x y valid invalid =
         invalid
 
 generateUTM =
-    let transitions_list = copy "utm" "1" "Y" "X" stop in
+    let transitions_list = copy_inv "utm" "1" "X" "Y" stop in
     let transitions = fromList transitions_list in
     let finals = ["STOP", "TRUE", "FALSE"] in
     let states = (map (\(name, _) -> name) transitions_list) ++ finals in
