@@ -294,8 +294,8 @@ substitute name e from to l_stop out =
 substitute_inv :: State -> Letter -> Letter -> Letter -> Letter -> Coherant -> Component
 substitute_inv name e from to l_stop out =
     let name' = encapsulate name in
-    both_way_search_left name to (name' "collapse", to, RIGHT) stop ++
-    collapse_to (name' "collapse") to l_stop (name' "copy_inv", RIGHT) ++
+    both_way_search_left name from (name' "collapse", from, RIGHT) stop ++
+    collapse_to (name' "collapse") from l_stop (name' "copy_inv", RIGHT) ++
     copy_inv (name' "copy_inv") e from to out
 
 -- Check if the number of specified 'e's are the same for provided X and Y.
