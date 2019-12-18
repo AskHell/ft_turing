@@ -287,7 +287,7 @@ substitute name e from to l_stop out =
     collapse_to (name' "collapse") from l_stop (name' "copy", RIGHT) ++
     copy_inv (name' "copy") e from to out
 
--- Substitute Symbol of second Letter by symbol of the first Letter stopping at the third letter
+-- Substitute Symbol of first Letter by Symbol of the second Letter stopping at the third letter
 -- Calls Coherant at unknown place
 --      X1110Y10
 --      X1110Y1110
