@@ -24,7 +24,9 @@ type Coherant = (State, Action)
     -- set the machine into State
     -- execute Action
 
-alphabet = [".", ">", "1", "0", "X", "Y", "B", "Z"]
+alphabet = [".",  "1", "0", "R", "L", -- Data
+    ">", "X", "Y", "B", "Z", -- Markers
+    "S", "^"] -- Separators
 
 stop = ("STOP", LEFT)
 false = ("FALSE", LEFT)
@@ -131,6 +133,19 @@ replace_at_left_to name at es stops replace out =
     let name' = encapsulate name in
     search_left name at (name' "finish_replace", at, RIGHT) stop ++
     replace_to (name' "finish_replace") es stops replace out
+
+move_to_next :: State -> Letter -> Letter -> Letter -> Coherant -> Component
+move_to_next name e by to (to_state, action) =
+    let name' = encapsulate name in
+    both_way_search_right name e (name' "move_to", by, RIGHT) stop ++
+    search_right (name' "move_to") to (to_state, e, action) stop
+
+move_to_prev :: State -> Letter -> Letter -> Letter -> Coherant -> Component
+move_to_prev name e by to (to_state, action) =
+    let name' = encapsulate name in
+    both_way_search_right name e (name' "move_to", by, LEFT) stop ++
+    search_left (name' "move_to") to (to_state, e, action) stop
+
 
 -- Check if Letters are all the same stoping at one of provided [Letter].
 -- Calls first Coherant if valid, second if invalid. Replaces all valid letters by provided Letter
@@ -328,9 +343,9 @@ copy_unsafe_inv name e x y out =
 substitute :: State -> Letter -> Letter -> Letter -> Letter -> Coherant -> Component
 substitute name e from to l_stop out =
     let name' = encapsulate name in
-    both_way_search_right name from (name' "collapse", to, RIGHT) stop ++
-    collapse_to (name' "collapse") from l_stop (name' "copy", RIGHT) ++
-    copy_inv (name' "copy") e from to out
+    both_way_search_right name to (name' "collapse", to, RIGHT) stop ++
+    collapse_to (name' "collapse") to l_stop (name' "copy", RIGHT) ++
+    copy (name' "copy") e from to out
 
 -- Substitute Symbol of first Letter by Symbol of the second Letter stopping at the third letter
 -- Calls Coherant at unknown place
@@ -449,27 +464,80 @@ match name e x y valid invalid =
         e
         invalid
 
-step_1 :: State -> Coherant -> Component
-step_1 name (to_state, action) =
+fill_buffer_state :: State -> Coherant -> Component
+fill_buffer_state name (to_state, action) =
     let name' = encapsulate name in
-    substitute_unsafe_inv name "1" "X" "Y" "0" (name' "step_1_search_X", RIGHT) ++
-    search_left (name' "step_1_search_X") "X" (name' "step_1_search_0", "X", RIGHT) stop ++
+    substitute_unsafe_inv name "1" ">" "Y" "0" (name' "step_1_search_>", RIGHT) ++
+    search_left (name' "step_1_search_>") ">" (name' "step_1_search_0", ">", RIGHT) stop ++
     search_right (name' "step_1_search_0") "0" (name' "step_1_add_X", "0", LEFT) stop ++
     apply (name' "step_1_add_X") (name' "step_1_add_X_2", RIGHT) ++
     apply_unsafe (name' "step_1_add_X_2") (name' "step_1_goto_Z", "X", RIGHT) ++
     search_right (name' "step_1_goto_Z") "Z" (to_state, "Z", action) stop
 
-step_2 :: State -> Coherant -> Component
-step_2 name out =
+fill_buffer_symbole :: State -> Coherant -> Component
+fill_buffer_symbole name out =
     let name' = encapsulate name in
     substitute_unsafe_inv name "1" "X" "Z" "0" out
+
+search_transition :: State -> Coherant -> Component
+search_transition name out =
+    let name' = encapsulate name in
+    match name "1" ">" "Y" (name' "symbol", RIGHT) (name' "next_clean", RIGHT) ++
+
+    search_right (name' "symbol") "Y" (name' "move_Y", "S", RIGHT) stop ++
+    search_right (name' "move_Y") "0" (name' "goto_start", "Y", LEFT) stop ++
+    search_left (name' "goto_start") ">" (name' "mark_symbol", ">", RIGHT) stop ++
+    search_right (name' "mark_symbol") "0" (name' "match_symbol", "X", RIGHT) stop ++
+    match (name' "match_symbol") "1" "X" "Y" (name' "clean_found", LEFT) (name' "next_clean_symbol", LEFT) ++
+
+    search_right (name' "next_clean_symbol") "Y" (name' "next_place_Y", "0", LEFT) stop ++
+    search_left (name' "next_place_Y") "S" (name' "next_clean", "Y", RIGHT) stop ++
+
+    search_left (name' "next_clean") "X" (name' "next_move_Y", "0", RIGHT) (name' "next_move_Y", RIGHT) ++
+    both_way_search_left (name' "next_move_Y") "Y" (name' "next_search_S", "S", RIGHT) stop ++
+    search_right (name' "next_search_S") "S" (name, "Y", LEFT) stop ++
+
+    search_left (name' "clean_found") ">" (name' "erase_buffer", ">", RIGHT) stop ++
+    replace_to (name' "erase_buffer") ["1", "X"] ["0", "S", "Y"] "0" out
+
+apply_transition :: State -> Coherant -> Component
+apply_transition name (to_state, action) =
+    let name' = encapsulate name in
+    -- put to_state into buffer
+    search_right name "Y" (name' "to_new_state", "0", RIGHT) stop ++
+    search_right (name' "to_new_state") "0" (name' "put_new_state", "Y", LEFT) stop ++
+    substitute_unsafe_inv (name' "put_new_state") "1" ">" "Y" "0" (name' "place_new_symbol", LEFT) ++
+
+    -- print symbol
+    search_left (name' "place_new_symbol") "Y" (name' "move_Y", "0", RIGHT) stop ++
+    search_right (name' "move_Y") "0" (name' "copy_new_symbol", "Y", RIGHT) stop ++
+    substitute (name' "copy_new_symbol") "1" "Y" "Z" "0" (name' "search_action", RIGHT) ++
+
+    -- execute action
+    search_left (name' "search_action") "Y" (name' "move_Y_action", "0", RIGHT) stop ++
+    search_right (name' "move_Y_action") "0" (name' "choose_action", "Y", RIGHT) stop ++
+    expect (name' "choose_action")
+        ["L", "R"]
+        [(name' "MOVE_LEFT", "L", LEFT), (name' "MOVE_RIGHT", "R", LEFT)]
+        stop
+    ++
+    move_to_next (name' "MOVE_RIGHT") "Z" "0" "0" (name' "finalize_buffer", LEFT) ++
+    move_to_prev (name' "MOVE_LEFT") "Z" "0" "0" (name' "finalize_buffer", LEFT) ++
+    search_left (name' "finalize_buffer") ">" (name' "add_X", ">", RIGHT) stop ++
+    search_right (name' "add_X") "0" (name' "search_Y", "X", RIGHT) stop ++
+
+    search_right (name' "search_Y") "Y" (name' "search_first_S", "0", LEFT) stop ++
+    search_left (name' "search_first_S") ">" (name' "replace_S", ">", RIGHT) stop ++
+    search_right (name' "replace_S") "S" (to_state, "Y", action) stop
 
 full_utm :: State -> Component
 full_utm name =
     let name' = encapsulate name in
-    step_1 name (name' "step_2", RIGHT) ++
-    step_2 (name' "step_2") (name' "step_3", RIGHT) ++
-    search_left (name' "step_3") "X" (name' "step_4", "0", RIGHT) stop
+    fill_buffer_state name (name' "step_2", RIGHT) ++
+    fill_buffer_symbole (name' "step_2") (name' "step_3", RIGHT) ++
+    search_left (name' "step_3") "X" (name' "step_4", "0", RIGHT) stop ++
+    search_transition (name' "step_4") (name' "step_5", LEFT) ++
+    apply_transition (name' "step_5") (name' "step_2", LEFT)
 
 generateUTM =
     let transitions_list = full_utm "utm" in
