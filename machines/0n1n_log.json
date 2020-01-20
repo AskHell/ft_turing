@@ -1,0 +1,130 @@
+{
+  "name": "0n1n_nlogn",
+  "alphabet": ["1", ".", "-", "0", "y", "n"],
+  "blank": ".",
+  "states": [
+    "init",
+    "search_first_0",
+    "clear_0_odds",
+    "clear_0_evens",
+    "clear_1_odds",
+    "clear_1_evens",
+    "back",
+    "HALT"
+  ],
+  "initial": "init",
+  "finals": ["HALT"],
+  "transitions": {
+    "init": [
+      { "read": ".", "to_state": "init", "write": ".", "action": "RIGHT" },
+      {
+        "read": "0",
+        "to_state": "clear_0_odds",
+        "write": ".",
+        "action": "RIGHT"
+      },
+      { "read": "1", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ],
+    "search_first_0": [
+      { "read": ".", "to_state": "HALT", "write": "y", "action": "LEFT" },
+      {
+        "read": "-",
+        "to_state": "search_first_0",
+        "write": ".",
+        "action": "RIGHT"
+      },
+      {
+        "read": "0",
+        "to_state": "clear_0_odds",
+        "write": ".",
+        "action": "RIGHT"
+      },
+      { "read": "1", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ],
+    "clear_0_evens": [
+      {
+        "read": "0",
+        "to_state": "clear_0_odds",
+        "write": "0",
+        "action": "RIGHT"
+      },
+      {
+        "read": "1",
+        "to_state": "clear_1_evens",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      {
+        "read": "-",
+        "to_state": "clear_0_evens",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      { "read": ".", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ],
+    "clear_0_odds": [
+      {
+        "read": "-",
+        "to_state": "clear_0_odds",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      {
+        "read": "0",
+        "to_state": "clear_0_evens",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      {
+        "read": "1",
+        "to_state": "clear_1_odds",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      { "read": ".", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ],
+    "clear_1_evens": [
+      {
+        "read": "1",
+        "to_state": "clear_1_odds",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      {
+        "read": "-",
+        "to_state": "clear_1_evens",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      { "read": ".", "to_state": "back", "write": ".", "action": "LEFT" },
+      { "read": "0", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ],
+    "clear_1_odds": [
+      {
+        "read": "1",
+        "to_state": "clear_1_evens",
+        "write": "1",
+        "action": "RIGHT"
+      },
+      {
+        "read": "-",
+        "to_state": "clear_1_odds",
+        "write": "-",
+        "action": "RIGHT"
+      },
+      { "read": ".", "to_state": "back", "write": ".", "action": "LEFT" },
+      { "read": "0", "to_state": "HALT", "write": "n", "action": "LEFT" }
+    ],
+    "back": [
+      { "read": "1", "to_state": "back", "write": "1", "action": "LEFT" },
+      { "read": "0", "to_state": "back", "write": "0", "action": "LEFT" },
+      { "read": "-", "to_state": "back", "write": "-", "action": "LEFT" },
+      {
+        "read": ".",
+        "to_state": "search_first_0",
+        "write": ".",
+        "action": "RIGHT"
+      }
+    ]
+  }
+}
