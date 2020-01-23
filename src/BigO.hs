@@ -66,16 +66,20 @@ createLoopMap baseMap = loopMap where
   (loopMap, _) = List.foldl
     (\(loopMap, loopIdsMap) (key, node) ->
       let explored = Map.empty
-      in  let loopKeys = getLoopKeys key (key, node) explored baseMap [] []
-          in  let filteredKeys = List.filter
-                    (\loopKey -> not $ Map.member loopKey loopIdsMap)
-                    loopKeys
-              in  let updatedLoopsMap = Map.insert key filteredKeys loopMap
-                  in  let updatedLoopIdsMap = List.foldl
-                            (\acc k -> Map.insert k True acc)
-                            loopIdsMap
-                            filteredKeys
-                      in  (updatedLoopsMap, updatedLoopIdsMap)
+      in  let loopIdsList = List.map fst $ Map.toList loopIdsMap
+          in  let loopKeys = getLoopKeys key (key, node) explored baseMap [] []
+              in  let
+                    filteredKeys = List.filter
+                      (\loopKey ->
+                        not $ List.any (List.isInfixOf loopKey) loopIdsList
+                      )
+                      loopKeys
+                  in  let updatedLoopsMap = Map.insert key filteredKeys loopMap
+                      in  let updatedLoopIdsMap = List.foldl
+                                (\acc k -> Map.insert k True acc)
+                                loopIdsMap
+                                filteredKeys
+                          in  (updatedLoopsMap, updatedLoopIdsMap)
     )
     (loopMap, loopIdsMap)
     nodeList   where
@@ -111,11 +115,7 @@ multLoops baseMap final loops = multCost final loopCosts
  where
   loopCosts = List.foldl
     (\acc loop ->
-      let loopCost = reduceLoop baseMap loop
-      in  let loopCost' =
-                  Debug.Trace.trace ("loopCost: " ++ show loopCost) loopCost
-          in  let m = maxCost [loopCost', acc]
-              in  let m' = Debug.Trace.trace ("m: " ++ show m) m in m'
+      let loopCost = reduceLoop baseMap loop in maxCost [loopCost, acc]
     )
     ([], 0)
     loops
@@ -143,10 +143,7 @@ toString (poly, _) = case degree poly of
   degree -> "O(n^" ++ show degree ++ ")"
 
 bigO :: Map State [Transition] -> String
-bigO transitionsMap = toString reduced' where
-  reduced' = Debug.Trace.trace ("reduced: " ++ show reduced) reduced
-  reduced  = reduce baseMap' loopMap'
-  loopMap' = Debug.Trace.trace ("loopMap: " ++ show loopMap) loopMap
-  baseMap' = Debug.Trace.trace ("baseMap: " ++ show baseMap) baseMap
-  loopMap  = createLoopMap baseMap
-  baseMap  = createBaseMap $ Map.toList transitionsMap
+bigO transitionsMap = toString reduced where
+  reduced = reduce baseMap loopMap
+  loopMap = createLoopMap baseMap
+  baseMap = createBaseMap $ Map.toList transitionsMap
