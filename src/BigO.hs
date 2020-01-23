@@ -19,7 +19,8 @@ import           Machine                        ( Transition(..)
                                                 , State
                                                 )
 
-type Cost = Polynomial
+type Log = Int
+type Cost = (Polynomial, Int)
 type Relation = String
 type Node = (Cost, [Relation])
 
@@ -82,42 +83,51 @@ createLoopMap baseMap = loopMap where
     loopIdsMap = Map.empty
     nodeList   = Map.toList baseMap
 
-
-addRelation :: BaseMap -> Polynomial -> Relation -> Polynomial
-addRelation baseMap acc relation = addP acc cost where
-  cost = case Map.lookup relation baseMap of
-    Nothing        -> []
+addRelation :: BaseMap -> Cost -> Relation -> Cost
+addRelation baseMap (accPoly, accLog) relation = (newPoly, newLog) where
+  newLog              = costLog + accLog
+  newPoly             = addP accPoly costPoly
+  (costPoly, costLog) = case Map.lookup relation baseMap of
+    Nothing        -> ([], 0)
     Just (cost, _) -> cost
 
-reduceLoop :: BaseMap -> [Relation] -> Polynomial
-reduceLoop baseMap relations = multP loopCost loopCost
-  where loopCost = List.foldl (addRelation baseMap) [] relations
+reduceLoop :: BaseMap -> [Relation] -> Cost
+reduceLoop baseMap relations = (newPoly, log)
+ where
+  newPoly     = if log == 0 then multP poly poly else poly
+  (poly, log) = List.foldl (addRelation baseMap) ([], 0) relations
 
-multLoops :: BaseMap -> Polynomial -> [[Relation]] -> Polynomial
-multLoops baseMap final loops = multP final loopCosts
+multCost :: Cost -> Cost -> Cost
+multCost (polyA, logA) (polyB, logB) = (multP polyA polyB, logA * logB)
+
+multLoops :: BaseMap -> Cost -> [[Relation]] -> Cost
+multLoops baseMap final loops = multCost final loopCosts
  where
   loopCosts = List.foldl
-    (\acc loop -> let loopCost = reduceLoop baseMap loop in multP acc loopCost)
-    []
+    (\acc loop ->
+      let loopCost = reduceLoop baseMap loop in multCost acc loopCost
+    )
+    ([], 0)
     loops
 
-reduce :: BaseMap -> LoopMap -> Polynomial
-reduce baseMap loopMap = List.foldl (multLoops baseMap) [] loopsList
+reduce :: BaseMap -> LoopMap -> Cost
+reduce baseMap loopMap = List.foldl (multLoops baseMap) ([], 0) loopsList
   where loopsList = List.map snd (Map.toList loopMap)
 
+-- TODO: find and update log
 updateBaseMap :: BaseMap -> (State, [Transition]) -> BaseMap
 updateBaseMap baseMap (state, transitions) = Map.insert state
                                                         (cost, relations)
                                                         baseMap where
-  cost      = if length relations < length to_states then [0, 1] else [1]
+  cost = if length relations < length to_states then ([0, 1], 0) else ([1], 0)
   relations = List.filter (/= state) to_states
   to_states = List.map to_state transitions
 
 createBaseMap :: [(State, [Transition])] -> BaseMap
 createBaseMap = List.foldl updateBaseMap Map.empty
 
-toString :: Polynomial -> String
-toString poly = case degree poly of
+toString :: Cost -> String
+toString (poly, _) = case degree poly of
   0      -> "O(1)"
   1      -> "O(n)"
   degree -> "O(n^" ++ show degree ++ ")"
