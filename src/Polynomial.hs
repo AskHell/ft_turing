@@ -2,6 +2,7 @@ module Polynomial
     ( multP
     , addP
     , degree
+    , maxP
     , Polynomial
     )
 where
@@ -9,6 +10,9 @@ where
 import           Data.List                     as List
 
 type Polynomial = [Int]
+
+maxP :: [Polynomial] -> Polynomial
+maxP = last . List.sortOn length
 
 addP :: Polynomial -> Polynomial -> Polynomial
 addP poly1     []        = poly1

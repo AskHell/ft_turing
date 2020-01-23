@@ -13,6 +13,7 @@ import           Polynomial                     ( Polynomial
                                                 , addP
                                                 , multP
                                                 , degree
+                                                , maxP
                                                 )
 
 import           Machine                        ( Transition(..)
@@ -100,12 +101,21 @@ reduceLoop baseMap relations = (newPoly, log)
 multCost :: Cost -> Cost -> Cost
 multCost (polyA, logA) (polyB, logB) = (multP polyA polyB, logA * logB)
 
+maxCost :: [Cost] -> Cost
+maxCost costs = (maxPoly, maxLog) where
+  maxPoly = maxP $ List.map fst costs
+  maxLog  = maximum $ List.map snd costs
+
 multLoops :: BaseMap -> Cost -> [[Relation]] -> Cost
 multLoops baseMap final loops = multCost final loopCosts
  where
   loopCosts = List.foldl
     (\acc loop ->
-      let loopCost = reduceLoop baseMap loop in multCost acc loopCost
+      let loopCost = reduceLoop baseMap loop
+      in  let loopCost' =
+                  Debug.Trace.trace ("loopCost: " ++ show loopCost) loopCost
+          in  let m = maxCost [loopCost', acc]
+              in  let m' = Debug.Trace.trace ("m: " ++ show m) m in m'
     )
     ([], 0)
     loops
