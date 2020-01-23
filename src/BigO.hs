@@ -129,9 +129,11 @@ updateBaseMap :: BaseMap -> (State, [Transition]) -> BaseMap
 updateBaseMap baseMap (state, transitions) = Map.insert state
                                                         (cost, relations)
                                                         baseMap where
-  cost = if length relations < length to_states then ([0, 1], 0) else ([1], 0)
-  relations = List.filter (/= state) to_states
-  to_states = List.map to_state transitions
+  cost      = (stepCost, if hasLog then 1 else 0)
+  hasLog    = List.all (\rel -> Machine.read rel /= Machine.write rel) to_states
+  stepCost  = if not $ List.null to_states then [0, 1] else [1]
+  relations = List.filter (/= state) $ List.map Machine.to_state transitions
+  to_states = List.filter ((== state) . to_state) transitions
 
 createBaseMap :: [(State, [Transition])] -> BaseMap
 createBaseMap = List.foldl updateBaseMap Map.empty
