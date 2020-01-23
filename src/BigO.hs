@@ -103,11 +103,12 @@ reduceLoop baseMap relations = (newPoly, log)
   (poly, log) = List.foldl (addRelation baseMap) ([], 0) relations
 
 multCost :: Cost -> Cost -> Cost
-multCost (polyA, logA) (polyB, logB) = (multP polyA polyB, logA * logB)
+multCost (polyA, logA) (polyB, logB) = (multP polyA polyB, logA + logB)
 
 maxCost :: [Cost] -> Cost
 maxCost costs = (maxPoly, maxLog) where
-  maxPoly = maxP $ List.map fst costs
+  maxPoly = maxP $ List.map fst costs'
+  costs'  = trace ("costs: " ++ show costs) costs
   maxLog  = maximum $ List.map snd costs
 
 multLoops :: BaseMap -> Cost -> [[Relation]] -> Cost
@@ -115,7 +116,8 @@ multLoops baseMap final loops = multCost final loopCosts
  where
   loopCosts = List.foldl
     (\acc loop ->
-      let loopCost = reduceLoop baseMap loop in maxCost [loopCost, acc]
+      let acc' = trace ("acc: " ++ show acc) acc
+      in  let loopCost = reduceLoop baseMap loop in maxCost [loopCost, acc']
     )
     ([], 0)
     loops
@@ -139,13 +141,16 @@ createBaseMap :: [(State, [Transition])] -> BaseMap
 createBaseMap = List.foldl updateBaseMap Map.empty
 
 toString :: Cost -> String
-toString (poly, _) = case degree poly of
-  0      -> "O(1)"
-  1      -> "O(n)"
+toString (poly, log) = case degree poly of
+  0 -> "O(1)"
+  1 -> case log of
+    0 -> "O(n)"
+    _ -> "O(nlogn)"
   degree -> "O(n^" ++ show degree ++ ")"
 
 bigO :: Map State [Transition] -> String
-bigO transitionsMap = toString reduced where
-  reduced = reduce baseMap loopMap
-  loopMap = createLoopMap baseMap
-  baseMap = createBaseMap $ Map.toList transitionsMap
+bigO transitionsMap = toString reduced' where
+  reduced' = trace ("reduced: " ++ show reduced) reduced
+  reduced  = reduce baseMap loopMap
+  loopMap  = createLoopMap baseMap
+  baseMap  = createBaseMap $ Map.toList transitionsMap
